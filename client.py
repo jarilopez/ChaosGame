@@ -12,7 +12,7 @@ SERVER_PORT = 5555
 # Pygame setup
 pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 1441, 768
-CAR_WIDTH, CAR_HEIGHT = 40, 20
+CAR_WIDTH, CAR_HEIGHT = 20, 20
 FPS = 60
 
 # Add font initialization here
@@ -35,10 +35,10 @@ FINISH_LINE_COLOR = (255, 255, 255)# Blanco puro para la línea de meta
 
 
 # Physics constants
-ACCELERATION = 0.5
+ACCELERATION = 0.1      # Reduced from 0.2 for slower acceleration
 TURNING_SPEED = 3.0
-FRICTION = 0.02
-MAX_SPEED = 8.0
+FRICTION = 0.01         # Reduced from 0.02 for smoother deceleration
+MAX_SPEED = 6.0
 DRIFT_FACTOR = 0.95
 GRASS_SLOWDOWN = 0.4  # Reduced from 0.7 for more forgiving gameplay
 
@@ -87,8 +87,7 @@ pygame.draw.lines(track_surface, TRACK_BORDER_COLOR, True, track_outer, 5)
 pygame.draw.lines(track_surface, TRACK_BORDER_COLOR, True, track_inner, 5)
 
 # Add checkered pattern at start/finish line
-for i in range(5):
-    pygame.draw.rect(track_surface, BLACK if i % 2 == 0 else WHITE, (80 + i*15, 100, 15, 50))
+
 
 # Create track mask for collision detection
 track_mask = pygame.mask.from_threshold(track_surface, TRACK_COLOR, (1, 1, 1, 255))
@@ -157,7 +156,7 @@ checkpoints = [
 ]
 
 # Finish line - positioned at the start/finish line
-finish_line = pygame.Rect(50, 100, 60, 40)
+finish_line = pygame.Rect(50, 150, 1, 1)
 
 # Define bombs before the game loop
 bombs = [
@@ -168,7 +167,7 @@ bombs = [
 
 # Initialize player car with correct orientation (facing right along the track)
 player_car = Car(start_position[0], start_position[1])
-player_car.angle = 270  # Set initial angle to face right along the track
+player_car.angle = 90  # Changed from 270 to 90 to face the opposite direction
 
 # Pygame Setup
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -187,9 +186,6 @@ while running:
     screen.blit(track_surface, (0, 0))
     
     # Draw finish line with alternating pattern
-    for i in range(10):
-        color = BLACK if i % 2 == 0 else WHITE
-        pygame.draw.rect(screen, color, (finish_line.x + i*10, finish_line.y, 10, finish_line.height))
     
     # Draw checkpoints with better visibility
     for i, checkpoint in enumerate(checkpoints):
@@ -208,11 +204,18 @@ while running:
     if keys[pygame.K_RIGHT]:
         player_car.angle -= TURNING_SPEED * 1.2
     
-    # Acceleration and braking
+    # Acceleration and braking with time-based mechanics
     if keys[pygame.K_UP]:
-        player_car.speed = min(player_car.speed + ACCELERATION * 1.5, MAX_SPEED)
-    if keys[pygame.K_DOWN]:
-        player_car.speed = max(player_car.speed - ACCELERATION * 3, -MAX_SPEED / 1.5)
+        player_car.acceleration_time += 1/FPS
+        acceleration = ACCELERATION * min(player_car.acceleration_time, 3.0)  # Increased time to reach max speed
+        player_car.speed = min(player_car.speed + acceleration, MAX_SPEED)
+    elif keys[pygame.K_DOWN]:
+        player_car.acceleration_time += 1/FPS
+        deceleration = ACCELERATION * min(player_car.acceleration_time, 2.0)  # Smoother braking
+        player_car.speed = max(player_car.speed - deceleration, -MAX_SPEED / 2.5)  # Reduced reverse speed
+    else:
+        player_car.acceleration_time = 0
+        player_car.speed *= (1 - FRICTION * 1.5)  # Adjusted natural deceleration
     
     # Check if car is on track and apply physics
     on_track = is_on_track(player_car.position, CAR_WIDTH, CAR_HEIGHT, player_car.angle)
