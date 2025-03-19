@@ -16,7 +16,9 @@ CAR_WIDTH, CAR_HEIGHT = 20, 20
 FPS = 60
 
 # Add font initialization here
-font = pygame.font.SysFont(None, 36)
+font = pygame.font.SysFont(None, 26)
+title_font = pygame.font.SysFont(None, 38)  # Larger font for titles
+data_font = pygame.font.SysFont(None, 26)   # Font for data display
 
 # Paleta de colores mejorada (futurista/UX 2025)
 
@@ -312,8 +314,8 @@ while running:
     # -----------------------------------------------------------------
     # UI Box with Race Data
     # -----------------------------------------------------------------
-    ui_box_width = 260
-    ui_box_height = 200
+    ui_box_width = 200
+    ui_box_height = 150
     ui_box_x = 10
     ui_box_y = SCREEN_HEIGHT - ui_box_height - 10
 
@@ -322,22 +324,22 @@ while running:
     pygame.draw.rect(ui_surface, (0, 255, 180), (0, 0, ui_box_width, ui_box_height), 3)
 
     # Race data text
-    lap_text = font.render(f"Lap: {lap_count}/{max_laps}", True, WHITE)
-    ui_surface.blit(lap_text, (10, 10))
+    lap_text = title_font.render(f"{lap_count}/{max_laps}", True, (0, 255, 180))
+    label_lap = data_font.render("LAP", True, (180, 180, 180))
+    ui_surface.blit(label_lap, (10, 10))
+    ui_surface.blit(lap_text, (10, 35))
 
     current_time = time.time() - player_car.current_lap_start
-    current_lap_text = font.render(f"Current Lap: {current_time:.2f}s", True, WHITE)
-    ui_surface.blit(current_lap_text, (10, 50))
-
-    last_lap_text = font.render(f"Last Lap: {player_car.last_lap_time:.2f}s", True, WHITE)
-    ui_surface.blit(last_lap_text, (10, 90))
+    current_lap_text = data_font.render(f"{current_time:.2f}s", True, WHITE)
+    label_current = data_font.render("CURRENT", True, (180, 180, 180))
+    ui_surface.blit(label_current, (10, 85))
+    ui_surface.blit(current_lap_text, (10, 110))
 
     best_lap_val = player_car.best_lap if player_car.best_lap != float('inf') else 0
-    best_lap_text = font.render(f"Best Lap: {best_lap_val:.2f}s", True, WHITE)
-    ui_surface.blit(best_lap_text, (10, 130))
-
-    speed_text = font.render(f"Speed: {abs(player_car.speed):.1f}", True, WHITE)
-    ui_surface.blit(speed_text, (10, 170))
+    best_lap_text = data_font.render(f"{best_lap_val:.2f}s", True, (0, 255, 180))
+    label_best = data_font.render("BEST", True, (180, 180, 180))
+    ui_surface.blit(label_best, (140, 85))
+    ui_surface.blit(best_lap_text, (140, 110))
 
     screen.blit(ui_surface, (ui_box_x, ui_box_y))
     
