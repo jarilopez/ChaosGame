@@ -260,7 +260,8 @@ while running:
 
     # 4. Título centrado
     title_str = "RACING GAME: VELOCITY UNLEASHED"
-    title_surf = title_font.render(title_str, True, TITLE_COLOR)
+    # Changed from TITLE_COLOR to a bright white with slight blue tint
+    title_surf = title_font.render(title_str, True, (240, 250, 255))
     title_rect = title_surf.get_rect(center=(SCREEN_WIDTH // 2, offset_y // 2))
     screen.blit(title_surf, title_rect)
 
@@ -395,34 +396,37 @@ while running:
     car_rect = rotated_car.get_rect(center=player_car.position)
     screen.blit(rotated_car, car_rect)
 
-    # 12. UI BOX (más pequeña)
-    ui_box_width = 180
-    ui_box_height = 130
+    # 12. UI BOX (más rectangular con 3 elementos en la misma fila)
+    ui_box_width = 320
+    ui_box_height = 80
     ui_box_x = 10
     ui_box_y = SCREEN_HEIGHT - ui_box_height - 10
 
     ui_surface = pygame.Surface((ui_box_width, ui_box_height), pygame.SRCALPHA)
     ui_surface.fill(UI_BG)
     pygame.draw.rect(ui_surface, UI_BORDER, (0, 0, ui_box_width, ui_box_height), 2)
-    # Render LAP text with medium weight
+    
+    # All three titles in the same row with bold text
+    label_lap = pygame.font.SysFont("Arial", 18, bold=True).render("LAP", True, TEXT_COLOR)
+    label_current = pygame.font.SysFont("Arial", 18, bold=True).render("CURRENT", True, TEXT_COLOR)
+    label_best = pygame.font.SysFont("Arial", 18, bold=True).render("BEST", True, TEXT_COLOR)
+    
+    # Position the three titles evenly
+    ui_surface.blit(label_lap, (30, 10))
+    ui_surface.blit(label_current, (120, 10))
+    ui_surface.blit(label_best, (230, 10))
+    
+    # Values below their respective titles
     lap_text = title_font.render(f"{lap_count}/{max_laps}", True, ACCENT_COLOR)
-    label_lap = pygame.font.SysFont("Arial", 18, bold=False).render("LAP", True, TEXT_COLOR)
-    ui_surface.blit(label_lap, (10, 10))
-    ui_surface.blit(lap_text, (10, 35))
-
-    # Render CURRENT text with medium weight
     time_val = time.time() - player_car.current_lap_start
     current_lap_text = data_font.render(f"{time_val:.2f}s", True, WHITE)
-    label_current = pygame.font.SysFont("Arial", 18, bold=False).render("CURRENT", True, TEXT_COLOR)
-    ui_surface.blit(label_current, (10, 75))
-    ui_surface.blit(current_lap_text, (10, 95))
-
-    # Render BEST text with medium weight
     best_lap_val = player_car.best_lap if player_car.best_lap != float('inf') else 0
     best_lap_text = data_font.render(f"{best_lap_val:.2f}s", True, GOLD)
-    label_best = pygame.font.SysFont("Arial", 18, bold=False).render("BEST", True, TEXT_COLOR)
-    ui_surface.blit(label_best, (100, 75))
-    ui_surface.blit(best_lap_text, (100, 95))
+    
+    # Position the values below their titles
+    ui_surface.blit(lap_text, (30, 40))
+    ui_surface.blit(current_lap_text, (120, 40))
+    ui_surface.blit(best_lap_text, (230, 40))
 
     screen.blit(ui_surface, (ui_box_x, ui_box_y))
 
