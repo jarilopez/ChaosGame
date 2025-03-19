@@ -18,18 +18,21 @@ FPS = 60
 # Add font initialization here
 font = pygame.font.SysFont(None, 36)
 
-# Colors
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
-BLACK = (0, 0, 0)
-TRACK_COLOR = (100, 100, 100)  # Gray for track
-TRACK_BORDER_COLOR = (255, 0, 0)  # Red for borders
-GRASS_COLOR = (0, 150, 0)  # Green for grass
-CHECKPOINT_COLOR = YELLOW
-FINISH_LINE_COLOR = WHITE
+# Paleta de colores mejorada (futurista/UX 2025)
+
+WHITE = (240, 240, 240)            # Blanco suave, menos duro que el 255,255,255
+RED = (230, 57, 70)                # Rojo intenso y moderno
+GREEN = (67, 160, 71)              # Verde vibrante y agradable
+BLUE = (66, 135, 245)              # Azul con un ligero tono pastel
+YELLOW = (255, 241, 118)           # Amarillo cálido y luminoso
+BLACK = (36, 36, 36)               # Negro suave, ideal para fondos oscuros
+
+TRACK_COLOR = (50, 50, 50)         # Gris oscuro para la pista
+TRACK_BORDER_COLOR = (0, 255, 180) # Borde neón (verde azulado) para resaltar
+GRASS_COLOR = (16, 150, 84)        # Verde ligeramente más brillante y moderno
+CHECKPOINT_COLOR = (255, 214, 10)  # Dorado/amarillo para destacar checkpoints
+FINISH_LINE_COLOR = (255, 255, 255)# Blanco puro para la línea de meta
+
 
 # Physics constants
 ACCELERATION = 0.5
