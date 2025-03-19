@@ -64,7 +64,7 @@ track_inner = [
     (150, 150), (1250, 150), (1250, 200),
     (950, 200), (950, 500), (1250, 500),
     (1250, 500), (550, 500), (450, 400),
-    (350, 400), (250, 450), (150, 350),
+    (350, 400), (200, 400), (150, 350),
     (150, 150)
 ]
 
@@ -144,17 +144,14 @@ lap_times = []
 
 # Define checkpoints around the track - positioned ON the track as shown in the image
 checkpoints = [
-    pygame.Rect(350, 100, 40, 100),   # Checkpoint 1 - after start
-    pygame.Rect(750, 100, 40, 100),   # Checkpoint 2 - top straight
-    pygame.Rect(1100, 350, 100, 40),  # Checkpoint 3 - right turn
-    pygame.Rect(950, 550, 100, 40),   # Checkpoint 4 - bottom right
-    pygame.Rect(550, 550, 100, 40),   # Checkpoint 5 - bottom middle
-    pygame.Rect(350, 450, 100, 40),   # Checkpoint 6 - left curve
-    pygame.Rect(150, 300, 40, 100),   # Checkpoint 7 - final turn
+    pygame.Rect(350, 50, 40, 100),   # Checkpoint 1 - after start
+    pygame.Rect(750, 50, 40, 100),   # Checkpoint 2 - top straight
+    pygame.Rect(950, 350, 100, 40),  # Checkpoint 3 - right turn
+    pygame.Rect(900, 500, 40, 100),   # Checkpoint 4 - bottom right
+    pygame.Rect(550, 500, 40, 100),   # Checkpoint 5 - bottom middle
+    pygame.Rect(350, 400, 40, 50),   # Checkpoint 6 - left curve
+    pygame.Rect(50, 300, 100, 40),   # Checkpoint 7 - final turn
 ]
-
-# Finish line - positioned at the start/finish line
-finish_line = pygame.Rect(80, 100, 70, 50)
 
 # Define bombs before the game loop
 bombs = [
@@ -244,10 +241,10 @@ while running:
         color = GREEN if i < current_checkpoint_index else YELLOW
         pygame.draw.rect(screen, color, checkpoint, 2)
     
-    # Draw finish line with alternating pattern
-    for i in range(10):
-        color = BLACK if i % 2 == 0 else WHITE
-        pygame.draw.rect(screen, color, (finish_line.x + i*10, finish_line.y, 10, finish_line.height))
+    # Remove this duplicate finish line drawing
+    # for i in range(10):
+    #     color = BLACK if i % 2 == 0 else WHITE
+    #     pygame.draw.rect(screen, color, (finish_line.x + i*10, finish_line.y, 10, finish_line.height))
     
     # Checkpoint detection with proper ordering
     if current_checkpoint_index < len(checkpoints):
