@@ -68,10 +68,10 @@ GREEN = (0, 200, 80)
 # ----------------------------------------------------------------
 #                   FÍSICA
 # ----------------------------------------------------------------
-ACCELERATION = 0.08
-TURNING_SPEED = 3.0
+ACCELERATION = 0.09
+TURNING_SPEED = 3.5
 FRICTION = 0.01
-MAX_SPEED = 5.0
+MAX_SPEED = 8.0
 DRIFT_FACTOR = 0.95
 GRASS_SLOWDOWN = 0.4
 
@@ -210,13 +210,37 @@ def receive_data(sock):
             if not data:
                 break
             
-            buffer += data.decode()
             try:
-                response = json.loads(buffer)
-                if "players" in response:
-                    players = response["players"]
+                buffer += data.decode()
+                # Find complete JSON objects
+                while buffer:
+                    try:
+                        response = json.loads(buffer)
+                        if "players" in response:
+                            players = response["players"]
+                        buffer = ""
+                        break
+                    except json.JSONDecodeError as e:
+                        if "Extra data" in str(e):
+                            # Try to find the end of the first complete JSON object
+                            pos = buffer.find("}")
+                            if pos != -1:
+                                first_json = buffer[:pos+1]
+                                buffer = buffer[pos+1:]
+                                try:
+                                    response = json.loads(first_json)
+                                    if "players" in response:
+                                        players = response["players"]
+                                except:
+                                    buffer = ""
+                            else:
+                                buffer = ""
+                        else:
+                            buffer = ""
+                            break
+                        
+            except UnicodeDecodeError:
                 buffer = ""
-            except json.JSONDecodeError:
                 continue
                 
         except Exception as e:
@@ -510,7 +534,9 @@ while running:
         "id": player_car.id  # Add this to Car class initialization
     }
     try:
-        client_socket.sendall(json.dumps(player_data).encode())
+        # Update multiplayer section in game loop
+        message = json.dumps(player_data) + "\n"
+        client_socket.sendall(message.encode())
     except:
         pass
 
