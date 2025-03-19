@@ -305,24 +305,40 @@ while running:
             player_car.position = start_position.copy()  # Reset position
             print("Hit a bomb! Back to start.")
     
-    # Display UI
+    # Display UI    
+    # -----------------------------------------------------------------
+    # UI Box with Race Data
+    # -----------------------------------------------------------------
+    ui_box_width = 260
+    ui_box_height = 200
+    ui_box_x = 10
+    ui_box_y = SCREEN_HEIGHT - ui_box_height - 10
+
+    ui_surface = pygame.Surface((ui_box_width, ui_box_height), pygame.SRCALPHA)
+    ui_surface.fill((36, 36, 36, 180))
+    pygame.draw.rect(ui_surface, (0, 255, 180), (0, 0, ui_box_width, ui_box_height), 3)
+
+    # Race data text
     lap_text = font.render(f"Lap: {lap_count}/{max_laps}", True, WHITE)
-    screen.blit(lap_text, (10, 10))
-    
+    ui_surface.blit(lap_text, (10, 10))
+
     current_time = time.time() - player_car.current_lap_start
     current_lap_text = font.render(f"Current Lap: {current_time:.2f}s", True, WHITE)
-    screen.blit(current_lap_text, (10, 50))
-    
+    ui_surface.blit(current_lap_text, (10, 50))
+
     last_lap_text = font.render(f"Last Lap: {player_car.last_lap_time:.2f}s", True, WHITE)
-    screen.blit(last_lap_text, (10, 90))
-    
-    best_lap_text = font.render(f"Best Lap: {player_car.best_lap if player_car.best_lap != float('inf') else 0:.2f}s", True, WHITE)
-    screen.blit(best_lap_text, (10, 130))
-    
+    ui_surface.blit(last_lap_text, (10, 90))
+
+    best_lap_val = player_car.best_lap if player_car.best_lap != float('inf') else 0
+    best_lap_text = font.render(f"Best Lap: {best_lap_val:.2f}s", True, WHITE)
+    ui_surface.blit(best_lap_text, (10, 130))
+
     speed_text = font.render(f"Speed: {abs(player_car.speed):.1f}", True, WHITE)
-    screen.blit(speed_text, (10, 170))
+    ui_surface.blit(speed_text, (10, 170))
+
+    screen.blit(ui_surface, (ui_box_x, ui_box_y))
     
-    # Track status indicator
+    # Track status indicator (keep this outside the UI box)
     status_text = font.render("ON TRACK" if on_track else "OFF TRACK", True, GREEN if on_track else RED)
     screen.blit(status_text, (SCREEN_WIDTH - 150, 10))
     
