@@ -13,7 +13,7 @@ SERVER_PORT = 5555
 
 pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 1441, 768
-CAR_WIDTH, CAR_HEIGHT = 20, 20
+CAR_WIDTH, CAR_HEIGHT = 30, 20
 FPS = 60
 
 # ----------------------------------------------------------------
@@ -421,31 +421,38 @@ while running:
         (CAR_WIDTH, CAR_HEIGHT//2-5),
         (CAR_WIDTH, CAR_HEIGHT//2+5)
     ])
-    # Move near the top with other image loads
-    car_image = pygame.image.load('car.png')
-    car_image = pygame.transform.scale(car_image, (CAR_WIDTH, CAR_HEIGHT))
-    car_image = pygame.transform.rotate(car_image, 270)  # Initial 90-degree rotation
+    # Move this to the image loading section at the top of the file
+    car_images = {
+        'blue': pygame.transform.rotate(pygame.transform.scale(pygame.image.load('car_blue.png'), (CAR_WIDTH, CAR_HEIGHT)), 270),
+        'red': pygame.transform.rotate(pygame.transform.scale(pygame.image.load('car_red.png'), (CAR_WIDTH, CAR_HEIGHT)), 270),
+        'green': pygame.transform.rotate(pygame.transform.scale(pygame.image.load('car_green.png'), (CAR_WIDTH, CAR_HEIGHT)), 270),
+        'yellow': pygame.transform.rotate(pygame.transform.scale(pygame.image.load('car_yellow.png'), (CAR_WIDTH, CAR_HEIGHT)), 270),
+    }
     
-    # Draw car
-    rotated_car = pygame.transform.rotate(car_image, player_car.angle)
+    PLAYER_COLORS = ['blue', 'red', 'green', 'yellow']
+    rotated_car = pygame.transform.rotate(car_images['blue'], player_car.angle)
     car_rect = rotated_car.get_rect(center=player_car.position)
     screen.blit(rotated_car, car_rect)
 
-    # Draw other players (in the game loop)
+    # Draw other players
     for player_id, player_data in players.items():
-        if str(player_id) != str(player_car.id):  # Don't draw ourselves
+        if str(player_id) != str(player_car.id):
             try:
                 other_pos = player_data["position"]
                 other_angle = player_data["angle"]
                 
-                # Draw other player's car
-                other_car = pygame.transform.rotate(car_image, other_angle)
+                # Get color based on player_id
+                color_index = (int(player_id) - 1) % len(PLAYER_COLORS)
+                player_color = PLAYER_COLORS[color_index]
+                
+                # Draw other player's car with their color
+                other_car = pygame.transform.rotate(car_images[player_color], other_angle)
                 other_rect = other_car.get_rect(center=other_pos)
                 screen.blit(other_car, other_rect)
                 
-                # Draw player ID and lap info
+                # Draw player ID and lap info with matching color
                 player_info = f"P{player_id} - Lap {player_data.get('lap', 0)}"
-                player_label = font.render(player_info, True, WHITE)
+                player_label = font.render(player_info, True, player_color)
                 label_rect = player_label.get_rect(center=(other_pos[0], other_pos[1] - 30))
                 screen.blit(player_label, label_rect)
             except (KeyError, TypeError):
