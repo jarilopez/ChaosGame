@@ -201,8 +201,13 @@ try:
 except:
     print("Could not connect to server. Running in single player mode.")
 
+# Add near the top with other global variables
+game_winner = None
+race_positions = []
+
+# Modify the receive_data function to handle game end
 def receive_data(sock):
-    global players
+    global players, game_winner, race_positions, game_finished
     buffer = ""
     while True:
         try:
@@ -212,12 +217,15 @@ def receive_data(sock):
             
             try:
                 buffer += data.decode()
-                # Find complete JSON objects
                 while buffer:
                     try:
                         response = json.loads(buffer)
                         if "players" in response:
                             players = response["players"]
+                        if "winner" in response:
+                            game_winner = response["winner"]
+                            race_positions = response.get("positions", [])
+                            game_finished = True
                         buffer = ""
                         break
                     except json.JSONDecodeError as e:
@@ -554,3 +562,57 @@ try:
     client_socket.close()
 except:
     pass
+
+# Modify the game finish section
+    if game_finished:
+        lb_surf = pygame.Surface((400, 320), pygame.SRCALPHA)
+        lb_surf.fill((0, 0, 0, 180))
+        pygame.draw.rect(lb_surf, ACCENT_COLOR, (0, 0, 400, 320), 2)
+
+        if game_winner == player_car.id:
+            lb_title = title_font.render("YOU WIN!", True, GOLD)
+        else:
+            lb_title = title_font.render("RACE FINISHED!", True, ACCENT_COLOR)
+        lb_title_rect = lb_title.get_rect(center=(200, 30))
+        lb_surf.blit(lb_title, lb_title_rect)
+
+        if game_winner:
+            winner_txt = data_font.render(f"Winner: Player {game_winner}", True, GOLD)
+            lb_surf.blit(winner_txt, (20, 70))
+
+        # Show positions
+        pos_title = data_font.render("Final Positions:", True, WHITE)
+        lb_surf.blit(pos_title, (20, 110))
+
+        for i, player_id in enumerate(race_positions):
+            position_txt = data_font.render(
+                f"{i+1}. Player {player_id}" + (" (You)" if player_id == player_car.id else ""),
+                True,
+                GOLD if player_id == game_winner else WHITE
+            )
+            lb_surf.blit(position_txt, (40, 140 + i*25))
+
+        # Show your stats if you finished
+        if player_car.id == game_winner:
+            total_txt = data_font.render(f"Your Time: {total_time:.2f}s", True, WHITE)
+            lb_surf.blit(total_txt, (20, 220))
+            best_txt = data_font.render(f"Best Lap: {player_car.best_lap:.2f}s", True, GOLD)
+            lb_surf.blit(best_txt, (20, 250))
+
+        exit_txt = data_font.render("Press ESC to exit", True, ACCENT_COLOR)
+        exit_rect = exit_txt.get_rect(center=(200, 290))
+        lb_surf.blit(exit_txt, exit_rect)
+
+        lb_rect = lb_surf.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
+        screen.blit(lb_surf, lb_rect)
+
+# Modify the multiplayer update section to include game finish
+    player_data = {
+        "position": player_car.position,
+        "angle": player_car.angle,
+        "lap": lap_count,
+        "checkpoints": current_checkpoint_index,
+        "id": player_car.id,
+        "finished": game_finished,
+        "total_time": total_time if game_finished else 0
+    }
