@@ -153,6 +153,9 @@ checkpoints = [
     pygame.Rect(50, 300, 100, 40),   # Checkpoint 7 - final turn
 ]
 
+# Finish line - positioned at the start/finish line
+finish_line = pygame.Rect(50, 100, 60, 40)
+
 # Define bombs before the game loop
 bombs = [
     pygame.Rect(300, 100, 20, 20),   # First straight
@@ -241,10 +244,10 @@ while running:
         color = GREEN if i < current_checkpoint_index else YELLOW
         pygame.draw.rect(screen, color, checkpoint, 2)
     
-    # Remove this duplicate finish line drawing
-    # for i in range(10):
-    #     color = BLACK if i % 2 == 0 else WHITE
-    #     pygame.draw.rect(screen, color, (finish_line.x + i*10, finish_line.y, 10, finish_line.height))
+    # Draw finish line with alternating pattern
+    for i in range(10):
+        color = BLACK if i % 2 == 0 else WHITE
+        pygame.draw.rect(screen, color, (finish_line.x + i*10, finish_line.y, 10, finish_line.height))
     
     # Checkpoint detection with proper ordering
     if current_checkpoint_index < len(checkpoints):
