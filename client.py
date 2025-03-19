@@ -52,7 +52,7 @@ FINISH_LINE_COLOR = (255, 255, 255)# Blanco puro para la línea de meta
 ACCELERATION = 0.08      # Reduced from 0.2 for slower acceleration
 TURNING_SPEED = 3.0
 FRICTION = 0.01         # Reduced from 0.02 for smoother deceleration
-MAX_SPEED = 6.0
+MAX_SPEED = 5.0
 DRIFT_FACTOR = 0.95
 GRASS_SLOWDOWN = 0.4  # Reduced from 0.7 for more forgiving gameplay
 
@@ -299,9 +299,63 @@ while running:
         current_checkpoint_index = 0
         player_car.current_lap_start = time.time()
         
+        # Add after the color definitions
+        LEADERBOARD_BG = (0, 0, 0, 200)  # Semi-transparent black
+        GOLD = (255, 215, 0)             # For best time highlight
+        
+        # Add after the Car class initialization
+        game_finished = False
+        total_time = 0
+        
+        # Modify the end game section in the lap completion code
         # End game if max laps reached
         if lap_count >= max_laps:
-            print(f"Race finished! Best lap: {player_car.best_lap:.2f}s")
+            game_finished = True
+            total_time = sum(lap_times)
+            player_car.speed = 0  # Stop the car
+            print(f"Race finished! Total time: {total_time:.2f}s, Best lap: {player_car.best_lap:.2f}s")
+        
+        # Add before pygame.display.flip() but after all other drawing code
+        # Draw leaderboard if game is finished
+        if game_finished:
+            running = False
+            # Create leaderboard surface
+            leaderboard = pygame.Surface((400, 300), pygame.SRCALPHA)
+            leaderboard.fill(LEADERBOARD_BG)
+            pygame.draw.rect(leaderboard, TRACK_BORDER_COLOR, (0, 0, 400, 300), 3)
+            
+            # Draw leaderboard title
+            title = title_font.render("RACE FINISHED!", True, TRACK_BORDER_COLOR)
+            title_rect = title.get_rect(centerx=200, y=20)
+            leaderboard.blit(title, title_rect)
+            
+            # Draw total time
+            total_time_text = data_font.render(f"Total Time: {total_time:.2f}s", True, WHITE)
+            leaderboard.blit(total_time_text, (50, 80))
+            
+            # Draw best lap
+            best_lap_text = data_font.render(f"Best Lap: {player_car.best_lap:.2f}s", True, GOLD)
+            leaderboard.blit(best_lap_text, (50, 120))
+            
+            # Draw all lap times
+            lap_title = data_font.render("Lap Times:", True, WHITE)
+            leaderboard.blit(lap_title, (50, 160))
+            for i, lap_time in enumerate(lap_times):
+                lap_text = data_font.render(f"Lap {i+1}: {lap_time:.2f}s", True, WHITE)
+                leaderboard.blit(lap_text, (70, 190 + i * 25))
+            
+            # Draw exit instruction
+            exit_text = data_font.render("Press ESC to exit", True, TRACK_BORDER_COLOR)
+            exit_rect = exit_text.get_rect(centerx=200, bottom=280)
+            leaderboard.blit(exit_text, exit_rect)
+            
+            # Center and display leaderboard
+            leaderboard_rect = leaderboard.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
+            screen.blit(leaderboard, leaderboard_rect)
+            
+            # Check for ESC key to exit
+            if keys[pygame.K_ESCAPE]:
+                running = False
     
     # Draw car
     car_surface = pygame.Surface((CAR_WIDTH, CAR_HEIGHT), pygame.SRCALPHA)
