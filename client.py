@@ -10,10 +10,22 @@ SERVER_IP = '127.0.0.1'
 SERVER_PORT = 5555
 
 # Pygame setup
+# After pygame.init() and before the game loop
 pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 1441, 768
 CAR_WIDTH, CAR_HEIGHT = 20, 20
 FPS = 60
+
+# Load game images
+bomb_image = pygame.image.load('bomb.png')
+bomb_image = pygame.transform.scale(bomb_image, (20, 20))
+explosion_image = pygame.image.load('explosion.png')
+explosion_image = pygame.transform.scale(explosion_image, (40, 40))
+
+# Add explosion state variables
+explosion_pos = None
+explosion_start = 0
+EXPLOSION_DURATION = 0.5  # seconds
 
 # Add font initialization here
 font = pygame.font.SysFont(None, 26)
@@ -37,7 +49,7 @@ FINISH_LINE_COLOR = (255, 255, 255)# Blanco puro para la línea de meta
 
 
 # Physics constants
-ACCELERATION = 0.1      # Reduced from 0.2 for slower acceleration
+ACCELERATION = 0.08      # Reduced from 0.2 for slower acceleration
 TURNING_SPEED = 3.0
 FRICTION = 0.01         # Reduced from 0.02 for smoother deceleration
 MAX_SPEED = 6.0
@@ -301,23 +313,31 @@ while running:
     car_rect = rotated_car.get_rect(center=player_car.position)
     screen.blit(rotated_car, car_rect)
     
-    # After pygame.init() and before the game loop
-    # Load bomb image
-    bomb_image = pygame.image.load('bomb.png')  # Make sure to have a bomb.png in your game directory
-    bomb_image = pygame.transform.scale(bomb_image, (20, 20))  # Match the bomb size
-    
-    # Replace the bomb drawing section in the game loop
+    # In the game loop, after drawing the track and before drawing the car
     # Draw bombs
     for bomb in bombs:
-        screen.blit(bomb_image, bomb)
-    
-    # Bomb collision
+        bomb_rect = bomb_image.get_rect(center=bomb.center)
+        screen.blit(bomb_image, bomb_rect)
+
+    # Bomb collision and explosion
+    current_time = time.time()
     for bomb in bombs:
-        if player_rect.colliderect(bomb):
-            player_car.speed = 0  # Stop the car
-            player_car.position = start_position.copy()  # Reset position
+        if player_rect.colliderect(bomb) and explosion_pos is None:
+            player_car.speed = 0
+            player_car.position = start_position.copy()
+            player_car.angle = 90  # Reset rotation to starting angle
+            explosion_pos = bomb.center
+            explosion_start = current_time
             print("Hit a bomb! Back to start.")
     
+    # Draw explosion animation if active
+    if explosion_pos is not None:
+        if current_time - explosion_start < EXPLOSION_DURATION:
+            explosion_rect = explosion_image.get_rect(center=explosion_pos)
+            screen.blit(explosion_image, explosion_rect)
+        else:
+            explosion_pos = None
+
     # Display UI    
     # -----------------------------------------------------------------
     # UI Box with Race Data
