@@ -5,79 +5,117 @@ import pygame
 import time
 import math
 
-# Server Connection
+# ----------------------------------------------------------------
+#                   CONFIGURACIÓN INICIAL
+# ----------------------------------------------------------------
 SERVER_IP = '127.0.0.1'
 SERVER_PORT = 5555
 
-# Pygame setup
-# After pygame.init() and before the game loop
 pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 1441, 768
 CAR_WIDTH, CAR_HEIGHT = 20, 20
 FPS = 60
 
-# Load game images
+# ----------------------------------------------------------------
+#                   CARGA DE IMÁGENES
+# ----------------------------------------------------------------
 bomb_image = pygame.image.load('bomb.png')
 bomb_image = pygame.transform.scale(bomb_image, (20, 20))
 explosion_image = pygame.image.load('explosion.png')
 explosion_image = pygame.transform.scale(explosion_image, (40, 40))
 
-# Add explosion state variables
+# Explosión
 explosion_pos = None
 explosion_start = 0
-EXPLOSION_DURATION = 0.5  # seconds
+EXPLOSION_DURATION = 0.5
 
-# Add font initialization here
-font = pygame.font.SysFont(None, 26)
-title_font = pygame.font.SysFont(None, 38)  # Larger font for titles
-data_font = pygame.font.SysFont(None, 26)   # Font for data display
+# ----------------------------------------------------------------
+#                   FUENTES (más pequeñas)
+# ----------------------------------------------------------------
+font = pygame.font.SysFont("Arial", 20)        # Texto general
+title_font = pygame.font.SysFont("Arial", 28, bold=True)  # Título reducido
+data_font = pygame.font.SysFont("Arial", 18)   # Texto pequeño para UI
 
-# Paleta de colores mejorada (futurista/UX 2025)
+# ----------------------------------------------------------------
+#                   COLORES
+# ----------------------------------------------------------------
+# Fondo degradado
+BG_TOP = (20, 20, 40)
+BG_BOTTOM = (40, 40, 80)
 
-WHITE = (240, 240, 240)            # Blanco suave, menos duro que el 255,255,255
-RED = (230, 57, 70)                # Rojo intenso y moderno
-GREEN = (67, 160, 71)              # Verde vibrante y agradable
-BLUE = (66, 135, 245)              # Azul con un ligero tono pastel
-YELLOW = (255, 241, 118)           # Amarillo cálido y luminoso
-BLACK = (36, 36, 36)               # Negro suave, ideal para fondos oscuros
+# Header y texto
+HEADER_BG = (0, 0, 0, 150)      # Semitransparente para header
+TITLE_COLOR = (0, 220, 255)     # Color cian para el título
+TEXT_COLOR = (220, 220, 220)    # Texto principal
+ACCENT_COLOR = (0, 255, 180)    # Acento neón
+GOLD = (255, 215, 0)
 
-TRACK_COLOR = (50, 50, 50)         # Gris oscuro para la pista
-TRACK_BORDER_COLOR = (0, 255, 180) # Borde neón (verde azulado) para resaltar
-GRASS_COLOR = (16, 150, 84)        # Verde ligeramente más brillante y moderno
-CHECKPOINT_COLOR = (255, 214, 10)  # Dorado/amarillo para destacar checkpoints
-FINISH_LINE_COLOR = (255, 255, 255)# Blanco puro para la línea de meta
+# UI
+UI_BG = (30, 30, 30, 180)
+UI_BORDER = (0, 255, 180)
 
+# Pista y otros
+TRACK_COLOR = (40, 40, 40)
+TRACK_BORDER_COLOR = (0, 255, 180)
+GRASS_COLOR = (20, 120, 50)
+WHITE = (240, 240, 240)
+RED = (230, 57, 70)
+BLUE = (66, 135, 245)
+YELLOW = (255, 241, 118)
+BLACK = (36, 36, 36)
+GREEN = (0, 200, 80)           
 
-# Physics constants
-ACCELERATION = 0.08      # Reduced from 0.2 for slower acceleration
+# ----------------------------------------------------------------
+#                   FÍSICA
+# ----------------------------------------------------------------
+ACCELERATION = 0.08
 TURNING_SPEED = 3.0
-FRICTION = 0.01         # Reduced from 0.02 for smoother deceleration
+FRICTION = 0.01
 MAX_SPEED = 5.0
 DRIFT_FACTOR = 0.95
-GRASS_SLOWDOWN = 0.4  # Reduced from 0.7 for more forgiving gameplay
+GRASS_SLOWDOWN = 0.4
 
-# Car class definition
+# ----------------------------------------------------------------
+#                   FUNCIÓN DEGRADADO
+# ----------------------------------------------------------------
+def draw_vertical_gradient(surface, color_top, color_bottom):
+    width = surface.get_width()
+    height = surface.get_height()
+    for y in range(height):
+        ratio = y / float(height)
+        r = int(color_top[0] * (1 - ratio) + color_bottom[0] * ratio)
+        g = int(color_top[1] * (1 - ratio) + color_bottom[1] * ratio)
+        b = int(color_top[2] * (1 - ratio) + color_bottom[2] * ratio)
+        pygame.draw.line(surface, (r, g, b), (0, y), (width, y))
+
+# ----------------------------------------------------------------
+#                   CLASE COCHE
+# ----------------------------------------------------------------
 class Car:
     def __init__(self, x, y):
         self.position = [x, y]
         self.velocity = [0, 0]
-        self.angle = 0  # Angle in degrees
+        self.angle = 0
         self.speed = 0
+        self.acceleration_time = 0
         self.checkpoint_times = []
         self.best_lap = float('inf')
         self.current_lap_start = time.time()
         self.last_lap_time = 0
 
-# Define track as a list of points (outer and inner boundaries)
-track_outer = [
+# ----------------------------------------------------------------
+#                   DEFINICIÓN DE PISTA CON OFFSET
+# ----------------------------------------------------------------
+offset_y = 70  # Reservamos 70px arriba para el header
+
+track_outer_original = [
     (50, 50), (1350, 50), (1350, 300),
     (1050, 300), (1050, 400), (1350, 400),
     (1350, 600), (550, 600), (400, 450),
     (250, 450), (150, 550), (50, 450),
     (50, 50)
 ]
-
-track_inner = [
+track_inner_original = [
     (150, 150), (1250, 150), (1250, 200),
     (950, 200), (950, 500), (1250, 500),
     (1250, 500), (550, 500), (450, 400),
@@ -85,52 +123,77 @@ track_inner = [
     (150, 150)
 ]
 
-# Car starting position - placed at the start/finish line on the track
-start_position = [120, 100]  # Positioned on the track near the finish line
+# Aplicamos offset vertical
+track_outer = [(x, y + offset_y) for x, y in track_outer_original]
+track_inner = [(x, y + offset_y) for x, y in track_inner_original]
 
-# Create a surface for the track
-track_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-track_surface.fill(GRASS_COLOR)  # Fill with grass color
+# Posición inicial del coche
+start_position_original = [120, 100]
+start_position = [start_position_original[0], start_position_original[1] + offset_y]
 
-# Draw the track on the surface
+# Checkpoints
+checkpoints_original = [
+    pygame.Rect(350, 50, 40, 40),
+    pygame.Rect(750, 110, 40, 40),
+    pygame.Rect(950, 350, 40, 40),
+    pygame.Rect(900, 500, 40, 40),
+    pygame.Rect(550, 500, 40, 40),
+    pygame.Rect(350, 400, 40, 50),
+    pygame.Rect(50, 300, 40, 40),
+]
+checkpoints = []
+for rect in checkpoints_original:
+    new_rect = pygame.Rect(rect.x, rect.y + offset_y, rect.width, rect.height)
+    checkpoints.append(new_rect)
+
+# Línea de meta
+finish_line_original = pygame.Rect(50, 150, 50, 50)
+finish_line = pygame.Rect(
+    finish_line_original.x,
+    finish_line_original.y + offset_y,
+    finish_line_original.width,
+    finish_line_original.height
+)
+
+# Bombas
+bombs_original = [
+    pygame.Rect(300, 100, 10, 10),
+    pygame.Rect(1000, 500, 10, 10),
+    pygame.Rect(700, 530, 10, 10),
+]
+bombs = []
+for rect in bombs_original:
+    new_rect = pygame.Rect(rect.x, rect.y + offset_y, rect.width, rect.height)
+    bombs.append(new_rect)
+
+# ----------------------------------------------------------------
+#                   SUPERFICIE DE LA PISTA
+# ----------------------------------------------------------------
+track_surface = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+track_surface.fill((0, 0, 0, 0))
+
+pygame.draw.rect(track_surface, GRASS_COLOR, (0, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.draw.polygon(track_surface, TRACK_COLOR, track_outer)
 pygame.draw.polygon(track_surface, GRASS_COLOR, track_inner)
-
-# Draw track borders
 pygame.draw.lines(track_surface, TRACK_BORDER_COLOR, True, track_outer, 5)
 pygame.draw.lines(track_surface, TRACK_BORDER_COLOR, True, track_inner, 5)
 
-# Add checkered pattern at start/finish line
-
-
-# Create track mask for collision detection
 track_mask = pygame.mask.from_threshold(track_surface, TRACK_COLOR, (1, 1, 1, 255))
 
-# Function to check if car is on track
 def is_on_track(pos, car_width, car_height, angle):
-    # Create a smaller hitbox for more forgiving track limits
     car_surface = pygame.Surface((car_width * 0.8, car_height * 0.8), pygame.SRCALPHA)
     pygame.draw.rect(car_surface, (255, 255, 255, 128), (0, 0, car_width * 0.8, car_height * 0.8))
     rotated_car = pygame.transform.rotate(car_surface, angle)
-    
     car_rect = rotated_car.get_rect(center=pos)
     car_mask = pygame.mask.from_surface(rotated_car)
     offset = (car_rect.x, car_rect.y)
-    
-    # Check for collision with track
-    if hasattr(pygame.mask, 'overlap_area'):
-        overlap = pygame.mask.overlap_area(track_mask, car_mask, offset)
-    else:
-        # Fallback for older Pygame versions
-        overlap = track_mask.overlap_area(car_mask, offset)
-    
-    # More forgiving track limits (require less overlap)
+    overlap = track_mask.overlap_area(car_mask, offset)
     return overlap > (car_width * car_height * 0.3)
 
-# Multiplayer Data
+# ----------------------------------------------------------------
+#                   MULTIJUGADOR
+# ----------------------------------------------------------------
 players = {}
-
-# Connect to Server
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     client_socket.connect((SERVER_IP, SERVER_PORT))
@@ -138,7 +201,6 @@ except:
     print("Could not connect to server. Running in single player mode.")
 
 def receive_data(sock):
-    """Receives player data from server."""
     global players
     while True:
         try:
@@ -151,41 +213,29 @@ def receive_data(sock):
 
 threading.Thread(target=receive_data, args=(client_socket,), daemon=True).start()
 
-# **Lap System**
+# ----------------------------------------------------------------
+#                   SISTEMA DE LAPS
+# ----------------------------------------------------------------
 lap_count = 0
 max_laps = 5
-current_checkpoint_index = 0  # Initialize checkpoint index
+current_checkpoint_index = 0
 checkpoint_hit = False
 lap_times = []
+game_finished = False
+total_time = 0
 
-# Define checkpoints around the track - positioned ON the track as shown in the image
-checkpoints = [
-    pygame.Rect(350, 50, 40, 40),   # Checkpoint 1 - after start
-    pygame.Rect(750, 110, 40, 40),   # Checkpoint 2 - top straight
-    pygame.Rect(950, 350, 40, 40),  # Checkpoint 3 - right turn
-    pygame.Rect(900, 500, 40, 40),   # Checkpoint 4 - bottom right
-    pygame.Rect(550, 500, 40, 40),   # Checkpoint 5 - bottom middle
-    pygame.Rect(350, 400, 40, 50),   # Checkpoint 6 - left curve
-    pygame.Rect(50, 300, 40, 40),   # Checkpoint 7 - final turn
-]
-
-# Finish line - positioned at the start/finish line
-finish_line = pygame.Rect(50, 150, 50, 50)
-
-# Define bombs before the game loop
-bombs = [
-    pygame.Rect(300, 100, 10, 10),   # First straight
-    pygame.Rect(1000, 500, 10, 10),   # Right side
-    pygame.Rect(700, 530, 10, 10),   # Bottom curve
-]
-
-# Initialize player car with correct orientation (facing right along the track)
+# ----------------------------------------------------------------
+#                   CREAR COCHE
+# ----------------------------------------------------------------
 player_car = Car(start_position[0], start_position[1])
-player_car.angle = 90  # Changed from 270 to 90 to face the opposite direction
+player_car.angle = 90
 
-# Pygame Setup
+# ----------------------------------------------------------------
+#                   PYGAME DISPLAY
+# ----------------------------------------------------------------
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Racing Game")
+pygame.display.set_caption("RACING GAME: VELOCITY UNLEASHED")
+pygame.display.set_icon(bomb_image)  # Set window icon
 clock = pygame.time.Clock()
 
 running = True
@@ -194,84 +244,87 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-    
-    # Draw background and track
-    screen.fill(GRASS_COLOR)
+
+    # 1. Dibujar fondo con degradado
+    background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+    draw_vertical_gradient(background, BG_TOP, BG_BOTTOM)
+    screen.blit(background, (0, 0))
+
+    # 2. Header semitransparente
+    header_surface = pygame.Surface((SCREEN_WIDTH, offset_y), pygame.SRCALPHA)
+    pygame.draw.rect(header_surface, HEADER_BG, (0, 0, SCREEN_WIDTH, offset_y))
+    screen.blit(header_surface, (0, 0))
+
+    # 3. Título centrado (fuente más pequeña)
+    title_str = "RACING GAME: VELOCITY UNLEASHED"
+    title_surf = title_font.render(title_str, True, TITLE_COLOR)
+    title_rect = title_surf.get_rect(center=(SCREEN_WIDTH // 2, offset_y // 2))
+    screen.blit(title_surf, title_rect)
+
+    # 4. Dibujar la pista (incluyendo césped y bordes)
     screen.blit(track_surface, (0, 0))
-    
-    # Draw finish line with alternating pattern
-    for i in range(10):
-        color = BLACK if i % 2 == 0 else WHITE
-        pygame.draw.rect(screen, color, (finish_line.x + i*10, finish_line.y, 10, finish_line.height))
-    # Draw checkpoints with better visibility
-    for i, checkpoint in enumerate(checkpoints):
-        color = GREEN if i < current_checkpoint_index else YELLOW
-        pygame.draw.rect(screen, color, checkpoint, 3)  # Thicker border
-        # Add checkpoint number for clarity
-        checkpoint_num = font.render(str(i+1), True, color)
-        screen.blit(checkpoint_num, checkpoint.center)
-    
-    # Controls
+
+    # 5. Dibujar bombas
+    for bomb in bombs:
+        bomb_rect = bomb_image.get_rect(center=bomb.center)
+        screen.blit(bomb_image, bomb_rect)
+
+    # 6. Controles del coche
     keys = pygame.key.get_pressed()
-    
-    # Steering
     if keys[pygame.K_LEFT]:
         player_car.angle += TURNING_SPEED * 1.2
     if keys[pygame.K_RIGHT]:
         player_car.angle -= TURNING_SPEED * 1.2
-    
-    # Acceleration and braking with time-based mechanics
     if keys[pygame.K_UP]:
         player_car.acceleration_time += 1/FPS
-        acceleration = ACCELERATION * min(player_car.acceleration_time, 3.0)  # Increased time to reach max speed
+        acceleration = ACCELERATION * min(player_car.acceleration_time, 3.0)
         player_car.speed = min(player_car.speed + acceleration, MAX_SPEED)
     elif keys[pygame.K_DOWN]:
         player_car.acceleration_time += 1/FPS
-        deceleration = ACCELERATION * min(player_car.acceleration_time, 2.0)  # Smoother braking
-        player_car.speed = max(player_car.speed - deceleration, -MAX_SPEED / 2.5)  # Reduced reverse speed
+        deceleration = ACCELERATION * min(player_car.acceleration_time, 2.0)
+        player_car.speed = max(player_car.speed - deceleration, -MAX_SPEED / 2.5)
     else:
         player_car.acceleration_time = 0
-        player_car.speed *= (1 - FRICTION * 1.5)  # Adjusted natural deceleration
-    
-    # Check if car is on track and apply physics
+        player_car.speed *= (1 - FRICTION * 1.5)
+
+    # 7. Aplicar física de pista/césped
     on_track = is_on_track(player_car.position, CAR_WIDTH, CAR_HEIGHT, player_car.angle)
-    
     if on_track:
         player_car.speed *= (1 - FRICTION)
     else:
         player_car.speed *= (1 - FRICTION - GRASS_SLOWDOWN)
-    
-    # Update car position
+
+    # Actualizar posición
     angle_rad = math.radians(player_car.angle)
     player_car.velocity[0] = math.sin(angle_rad) * player_car.speed
     player_car.velocity[1] = math.cos(angle_rad) * player_car.speed
-    
     player_car.position[0] += player_car.velocity[0]
     player_car.position[1] += player_car.velocity[1]
-    
-    # Keep car within screen bounds
+
+    # Limitar a la pantalla
     player_car.position[0] = max(0, min(player_car.position[0], SCREEN_WIDTH))
     player_car.position[1] = max(0, min(player_car.position[1], SCREEN_HEIGHT))
-    
-    # Create player_rect for collision detection
+
+    # 8. Dibujar línea de meta y checkpoints
+    for i in range(10):
+        c = BLACK if i % 2 == 0 else WHITE
+        pygame.draw.rect(screen, c, (finish_line.x + i*10, finish_line.y, 10, finish_line.height))
+
+    for i, checkpoint in enumerate(checkpoints):
+        color = GREEN if i < current_checkpoint_index else YELLOW
+        pygame.draw.rect(screen, color, checkpoint, 3)
+        num_surf = font.render(str(i+1), True, color)
+        screen.blit(num_surf, checkpoint.center)
+
+    # 9. Rect del coche para colisiones
     player_rect = pygame.Rect(
         player_car.position[0] - CAR_WIDTH/2,
         player_car.position[1] - CAR_HEIGHT/2,
         CAR_WIDTH,
         CAR_HEIGHT
     )
-    
-    # Draw checkpoints
-    for i, checkpoint in enumerate(checkpoints):
-        color = GREEN if i < current_checkpoint_index else YELLOW
-        pygame.draw.rect(screen, color, checkpoint, 2)
-    
-    # Draw finish line with alternating pattern
-    for i in range(10):
-        color = BLACK if i % 2 == 0 else WHITE
-        pygame.draw.rect(screen, color, (finish_line.x + i*10, finish_line.y, 10, finish_line.height))
-    
-    # Checkpoint detection with proper ordering
+
+    # Checkpoints
     if current_checkpoint_index < len(checkpoints):
         checkpoint = checkpoints[current_checkpoint_index]
         if player_rect.colliderect(checkpoint):
@@ -281,167 +334,138 @@ while running:
                 print(f"Checkpoint {current_checkpoint_index} reached!")
         else:
             checkpoint_hit = False
-    
-    # Finish line detection (only if all checkpoints have been passed)
+
+    # Meta
     if current_checkpoint_index >= len(checkpoints) and player_rect.colliderect(finish_line):
         lap_count += 1
         current_lap_time = time.time() - player_car.current_lap_start
         player_car.last_lap_time = current_lap_time
         lap_times.append(current_lap_time)
-        
-        # Update best lap time
+
         if current_lap_time < player_car.best_lap:
             player_car.best_lap = current_lap_time
-            
+
         print(f"Lap {lap_count} completed in {current_lap_time:.2f} seconds!")
-        
-        # Reset for next lap
         current_checkpoint_index = 0
         player_car.current_lap_start = time.time()
-        
-        # Add after the color definitions
-        LEADERBOARD_BG = (0, 0, 0, 200)  # Semi-transparent black
-        GOLD = (255, 215, 0)             # For best time highlight
-        
-        # Add after the Car class initialization
-        game_finished = False
-        total_time = 0
-        
-        # Modify the end game section in the lap completion code
-        # End game if max laps reached
+
         if lap_count >= max_laps:
             game_finished = True
             total_time = sum(lap_times)
-            player_car.speed = 0  # Stop the car
+            player_car.speed = 0
             print(f"Race finished! Total time: {total_time:.2f}s, Best lap: {player_car.best_lap:.2f}s")
-        
-        # Add before pygame.display.flip() but after all other drawing code
-        # Draw leaderboard if game is finished
-        if game_finished:
-            running = False
-            # Create leaderboard surface
-            leaderboard = pygame.Surface((400, 300), pygame.SRCALPHA)
-            leaderboard.fill(LEADERBOARD_BG)
-            pygame.draw.rect(leaderboard, TRACK_BORDER_COLOR, (0, 0, 400, 300), 3)
-            
-            # Draw leaderboard title
-            title = title_font.render("RACE FINISHED!", True, TRACK_BORDER_COLOR)
-            title_rect = title.get_rect(centerx=200, y=20)
-            leaderboard.blit(title, title_rect)
-            
-            # Draw total time
-            total_time_text = data_font.render(f"Total Time: {total_time:.2f}s", True, WHITE)
-            leaderboard.blit(total_time_text, (50, 80))
-            
-            # Draw best lap
-            best_lap_text = data_font.render(f"Best Lap: {player_car.best_lap:.2f}s", True, GOLD)
-            leaderboard.blit(best_lap_text, (50, 120))
-            
-            # Draw all lap times
-            lap_title = data_font.render("Lap Times:", True, WHITE)
-            leaderboard.blit(lap_title, (50, 160))
-            for i, lap_time in enumerate(lap_times):
-                lap_text = data_font.render(f"Lap {i+1}: {lap_time:.2f}s", True, WHITE)
-                leaderboard.blit(lap_text, (70, 190 + i * 25))
-            
-            # Draw exit instruction
-            exit_text = data_font.render("Press ESC to exit", True, TRACK_BORDER_COLOR)
-            exit_rect = exit_text.get_rect(centerx=200, bottom=280)
-            leaderboard.blit(exit_text, exit_rect)
-            
-            # Center and display leaderboard
-            leaderboard_rect = leaderboard.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
-            screen.blit(leaderboard, leaderboard_rect)
-            
-            # Check for ESC key to exit
-            if keys[pygame.K_ESCAPE]:
-                running = False
-    
-    # Draw car
-    car_surface = pygame.Surface((CAR_WIDTH, CAR_HEIGHT), pygame.SRCALPHA)
-    pygame.draw.rect(car_surface, BLUE, (0, 0, CAR_WIDTH, CAR_HEIGHT))
-    # Add a direction indicator
-    pygame.draw.polygon(car_surface, RED, [(CAR_WIDTH-5, CAR_HEIGHT//2), (CAR_WIDTH, CAR_HEIGHT//2-5), (CAR_WIDTH, CAR_HEIGHT//2+5)])
-    
-    rotated_car = pygame.transform.rotate(car_surface, player_car.angle)
-    car_rect = rotated_car.get_rect(center=player_car.position)
-    screen.blit(rotated_car, car_rect)
-    
-    # In the game loop, after drawing the track and before drawing the car
-    # Draw bombs
-    for bomb in bombs:
-        bomb_rect = bomb_image.get_rect(center=bomb.center)
-        screen.blit(bomb_image, bomb_rect)
 
-    # Bomb collision and explosion
+    # 10. Colisión con bombas y explosión
     current_time = time.time()
     for bomb in bombs:
         if player_rect.colliderect(bomb) and explosion_pos is None:
             player_car.speed = 0
             player_car.position = start_position.copy()
-            player_car.angle = 90  # Reset rotation to starting angle
+            player_car.angle = 90
             explosion_pos = bomb.center
             explosion_start = current_time
             print("Hit a bomb! Back to start.")
-    
-    # Draw explosion animation if active
+
     if explosion_pos is not None:
         if current_time - explosion_start < EXPLOSION_DURATION:
-            explosion_rect = explosion_image.get_rect(center=explosion_pos)
-            screen.blit(explosion_image, explosion_rect)
+            exp_rect = explosion_image.get_rect(center=explosion_pos)
+            screen.blit(explosion_image, exp_rect)
         else:
             explosion_pos = None
 
-    # Display UI    
-    # -----------------------------------------------------------------
-    # UI Box with Race Data
-    # -----------------------------------------------------------------
-    ui_box_width = 200
-    ui_box_height = 150
+    # 11. Dibujar el coche
+    car_surf = pygame.Surface((CAR_WIDTH, CAR_HEIGHT), pygame.SRCALPHA)
+    pygame.draw.rect(car_surf, BLUE, (0, 0, CAR_WIDTH, CAR_HEIGHT))
+    pygame.draw.polygon(car_surf, RED, [
+        (CAR_WIDTH-5, CAR_HEIGHT//2),
+        (CAR_WIDTH, CAR_HEIGHT//2-5),
+        (CAR_WIDTH, CAR_HEIGHT//2+5)
+    ])
+    rotated_car = pygame.transform.rotate(car_surf, player_car.angle)
+    car_rect = rotated_car.get_rect(center=player_car.position)
+    screen.blit(rotated_car, car_rect)
+
+    # 12. UI BOX (más pequeña)
+    ui_box_width = 180
+    ui_box_height = 130
     ui_box_x = 10
     ui_box_y = SCREEN_HEIGHT - ui_box_height - 10
 
     ui_surface = pygame.Surface((ui_box_width, ui_box_height), pygame.SRCALPHA)
-    ui_surface.fill((36, 36, 36, 180))
-    pygame.draw.rect(ui_surface, (0, 255, 180), (0, 0, ui_box_width, ui_box_height), 3)
+    ui_surface.fill(UI_BG)
+    pygame.draw.rect(ui_surface, UI_BORDER, (0, 0, ui_box_width, ui_box_height), 2)
 
-    # Race data text
-    lap_text = title_font.render(f"{lap_count}/{max_laps}", True, (0, 255, 180))
-    label_lap = data_font.render("LAP", True, (180, 180, 180))
+    lap_text = title_font.render(f"{lap_count}/{max_laps}", True, ACCENT_COLOR)
+    label_lap = data_font.render("LAP", True, TEXT_COLOR)
     ui_surface.blit(label_lap, (10, 10))
     ui_surface.blit(lap_text, (10, 35))
 
-    current_time = time.time() - player_car.current_lap_start
-    current_lap_text = data_font.render(f"{current_time:.2f}s", True, WHITE)
-    label_current = data_font.render("CURRENT", True, (180, 180, 180))
-    ui_surface.blit(label_current, (10, 85))
-    ui_surface.blit(current_lap_text, (10, 110))
+    time_val = time.time() - player_car.current_lap_start
+    current_lap_text = data_font.render(f"{time_val:.2f}s", True, WHITE)
+    label_current = data_font.render("CURRENT", True, TEXT_COLOR)
+    ui_surface.blit(label_current, (10, 75))
+    ui_surface.blit(current_lap_text, (10, 95))
 
     best_lap_val = player_car.best_lap if player_car.best_lap != float('inf') else 0
-    best_lap_text = data_font.render(f"{best_lap_val:.2f}s", True, (0, 255, 180))
-    label_best = data_font.render("BEST", True, (180, 180, 180))
-    ui_surface.blit(label_best, (140, 85))
-    ui_surface.blit(best_lap_text, (140, 110))
+    best_lap_text = data_font.render(f"{best_lap_val:.2f}s", True, GOLD)
+    label_best = data_font.render("BEST", True, TEXT_COLOR)
+    ui_surface.blit(label_best, (100, 75))
+    ui_surface.blit(best_lap_text, (100, 95))
 
     screen.blit(ui_surface, (ui_box_x, ui_box_y))
-    
-    # Track status indicator (keep this outside the UI box)
-    status_text = font.render("ON TRACK" if on_track else "OFF TRACK", True, GREEN if on_track else RED)
-    screen.blit(status_text, (SCREEN_WIDTH - 150, 10))
-    
-    # Update the multiplayer data
+
+    # Indicador ON/OFF TRACK
+    status_txt = font.render("ON TRACK" if on_track else "OFF TRACK", True, GREEN if on_track else RED)
+    screen.blit(status_txt, (SCREEN_WIDTH - 150, offset_y + 10))
+
+    # 13. Leaderboard si terminó la carrera
+    if game_finished:
+        lb_surf = pygame.Surface((360, 280), pygame.SRCALPHA)
+        lb_surf.fill((0, 0, 0, 160))
+        pygame.draw.rect(lb_surf, ACCENT_COLOR, (0, 0, 360, 280), 2)
+
+        lb_title = title_font.render("RACE FINISHED!", True, ACCENT_COLOR)
+        lb_title_rect = lb_title.get_rect(center=(180, 30))
+        lb_surf.blit(lb_title, lb_title_rect)
+
+        total_txt = data_font.render(f"Total Time: {total_time:.2f}s", True, WHITE)
+        lb_surf.blit(total_txt, (20, 70))
+
+        best_txt = data_font.render(f"Best Lap: {player_car.best_lap:.2f}s", True, GOLD)
+        lb_surf.blit(best_txt, (20, 100))
+
+        laps_title = data_font.render("Lap Times:", True, WHITE)
+        lb_surf.blit(laps_title, (20, 140))
+
+        for i, lt in enumerate(lap_times):
+            lt_txt = data_font.render(f"Lap {i+1}: {lt:.2f}s", True, WHITE)
+            lb_surf.blit(lt_txt, (40, 165 + i*25))
+
+        exit_txt = data_font.render("Press ESC to exit", True, ACCENT_COLOR)
+        exit_rect = exit_txt.get_rect(center=(180, 250))
+        lb_surf.blit(exit_txt, exit_rect)
+
+        lb_rect = lb_surf.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
+        screen.blit(lb_surf, lb_rect)
+
+        # Salir con ESC
+        if keys[pygame.K_ESCAPE]:
+            running = False
+
+    # ----------------------------------------------------------------
+    #                   ACTUALIZAR MULTIJUGADOR
+    # ----------------------------------------------------------------
     player_data = {
         "position": player_car.position,
         "angle": player_car.angle,
         "lap": lap_count,
         "checkpoints": current_checkpoint_index
     }
-    
     try:
         client_socket.sendall(json.dumps(player_data).encode())
     except:
-        pass  # Ignore if server connection failed
-    
+        pass
+
     pygame.display.flip()
 
 pygame.quit()
