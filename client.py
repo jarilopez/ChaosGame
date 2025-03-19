@@ -8,7 +8,7 @@ import math
 # ----------------------------------------------------------------
 #                   CONFIGURACIÓN INICIAL
 # ----------------------------------------------------------------
-SERVER_IP = '127.0.0.1'
+SERVER_IP = '192.168.33.68'
 SERVER_PORT = 5555
 
 pygame.init()
@@ -390,13 +390,28 @@ while running:
     car_image = pygame.transform.scale(car_image, (CAR_WIDTH, CAR_HEIGHT))
     car_image = pygame.transform.rotate(car_image, 270)  # Initial 90-degree rotation
     
-    # Replace the car drawing section
     # Draw car
     rotated_car = pygame.transform.rotate(car_image, player_car.angle)
     car_rect = rotated_car.get_rect(center=player_car.position)
     screen.blit(rotated_car, car_rect)
 
-    # 12. UI BOX (más rectangular con 3 elementos en la misma fila)
+    # Draw other players
+    for player_id, player_data in players.items():
+        if str(player_data) != str(player_car):  # Don't draw ourselves twice
+            other_pos = player_data["position"]
+            other_angle = player_data["angle"]
+            
+            # Draw other player's car
+            other_car = pygame.transform.rotate(car_image, other_angle)
+            other_rect = other_car.get_rect(center=other_pos)
+            screen.blit(other_car, other_rect)
+            
+            # Draw player ID above car
+            player_label = font.render(f"Player {player_id}", True, WHITE)
+            label_rect = player_label.get_rect(center=(other_pos[0], other_pos[1] - 30))
+            screen.blit(player_label, label_rect)
+
+    # 12. UI BOX (más pequeña)
     ui_box_width = 320
     ui_box_height = 80
     ui_box_x = 10
