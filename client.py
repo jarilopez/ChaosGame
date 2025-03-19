@@ -148,23 +148,23 @@ lap_times = []
 
 # Define checkpoints around the track - positioned ON the track as shown in the image
 checkpoints = [
-    pygame.Rect(350, 50, 40, 100),   # Checkpoint 1 - after start
-    pygame.Rect(750, 50, 40, 100),   # Checkpoint 2 - top straight
-    pygame.Rect(950, 350, 100, 40),  # Checkpoint 3 - right turn
-    pygame.Rect(900, 500, 40, 100),   # Checkpoint 4 - bottom right
-    pygame.Rect(550, 500, 40, 100),   # Checkpoint 5 - bottom middle
+    pygame.Rect(350, 50, 40, 40),   # Checkpoint 1 - after start
+    pygame.Rect(750, 110, 40, 40),   # Checkpoint 2 - top straight
+    pygame.Rect(950, 350, 40, 40),  # Checkpoint 3 - right turn
+    pygame.Rect(900, 500, 40, 40),   # Checkpoint 4 - bottom right
+    pygame.Rect(550, 500, 40, 40),   # Checkpoint 5 - bottom middle
     pygame.Rect(350, 400, 40, 50),   # Checkpoint 6 - left curve
-    pygame.Rect(50, 300, 100, 40),   # Checkpoint 7 - final turn
+    pygame.Rect(50, 300, 40, 40),   # Checkpoint 7 - final turn
 ]
 
 # Finish line - positioned at the start/finish line
-finish_line = pygame.Rect(50, 150, 1, 1)
+finish_line = pygame.Rect(50, 150, 50, 50)
 
 # Define bombs before the game loop
 bombs = [
-    pygame.Rect(300, 100, 20, 20),   # First straight
-    pygame.Rect(800, 350, 20, 20),   # Right side
-    pygame.Rect(400, 500, 20, 20),   # Bottom curve
+    pygame.Rect(300, 100, 10, 10),   # First straight
+    pygame.Rect(1000, 500, 10, 10),   # Right side
+    pygame.Rect(700, 530, 10, 10),   # Bottom curve
 ]
 
 # Initialize player car with correct orientation (facing right along the track)
@@ -188,7 +188,9 @@ while running:
     screen.blit(track_surface, (0, 0))
     
     # Draw finish line with alternating pattern
-    
+    for i in range(10):
+        color = BLACK if i % 2 == 0 else WHITE
+        pygame.draw.rect(screen, color, (finish_line.x + i*10, finish_line.y, 10, finish_line.height))
     # Draw checkpoints with better visibility
     for i, checkpoint in enumerate(checkpoints):
         color = GREEN if i < current_checkpoint_index else YELLOW
@@ -299,9 +301,15 @@ while running:
     car_rect = rotated_car.get_rect(center=player_car.position)
     screen.blit(rotated_car, car_rect)
     
+    # After pygame.init() and before the game loop
+    # Load bomb image
+    bomb_image = pygame.image.load('bomb.png')  # Make sure to have a bomb.png in your game directory
+    bomb_image = pygame.transform.scale(bomb_image, (20, 20))  # Match the bomb size
+    
+    # Replace the bomb drawing section in the game loop
     # Draw bombs
     for bomb in bombs:
-        pygame.draw.circle(screen, RED, bomb.center, bomb.width//2)
+        screen.blit(bomb_image, bomb)
     
     # Bomb collision
     for bomb in bombs:
