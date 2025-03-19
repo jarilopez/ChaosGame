@@ -217,7 +217,7 @@ threading.Thread(target=receive_data, args=(client_socket,), daemon=True).start(
 #                   SISTEMA DE LAPS
 # ----------------------------------------------------------------
 lap_count = 0
-max_laps = 5
+max_laps = 3
 current_checkpoint_index = 0
 checkpoint_hit = False
 lap_times = []
@@ -250,19 +250,19 @@ while running:
     draw_vertical_gradient(background, BG_TOP, BG_BOTTOM)
     screen.blit(background, (0, 0))
 
-    # 2. Header semitransparente
+    # 2. Dibujar la pista (incluyendo césped y bordes)
+    screen.blit(track_surface, (0, 0))
+
+    # 3. Header semitransparente
     header_surface = pygame.Surface((SCREEN_WIDTH, offset_y), pygame.SRCALPHA)
-    pygame.draw.rect(header_surface, HEADER_BG, (0, 0, SCREEN_WIDTH, offset_y))
+    header_surface.fill((0, 0, 0, 180))  # Made slightly more opaque
     screen.blit(header_surface, (0, 0))
 
-    # 3. Título centrado (fuente más pequeña)
+    # 4. Título centrado
     title_str = "RACING GAME: VELOCITY UNLEASHED"
     title_surf = title_font.render(title_str, True, TITLE_COLOR)
     title_rect = title_surf.get_rect(center=(SCREEN_WIDTH // 2, offset_y // 2))
     screen.blit(title_surf, title_rect)
-
-    # 4. Dibujar la pista (incluyendo césped y bordes)
-    screen.blit(track_surface, (0, 0))
 
     # 5. Dibujar bombas
     for bomb in bombs:
@@ -314,7 +314,10 @@ while running:
         color = GREEN if i < current_checkpoint_index else YELLOW
         pygame.draw.rect(screen, color, checkpoint, 3)
         num_surf = font.render(str(i+1), True, color)
-        screen.blit(num_surf, checkpoint.center)
+        # Get the text size to center it properly
+        text_rect = num_surf.get_rect()
+        text_rect.center = checkpoint.center
+        screen.blit(num_surf, text_rect)
 
     # 9. Rect del coche para colisiones
     player_rect = pygame.Rect(
@@ -381,7 +384,14 @@ while running:
         (CAR_WIDTH, CAR_HEIGHT//2-5),
         (CAR_WIDTH, CAR_HEIGHT//2+5)
     ])
-    rotated_car = pygame.transform.rotate(car_surf, player_car.angle)
+    # Move near the top with other image loads
+    car_image = pygame.image.load('car.png')
+    car_image = pygame.transform.scale(car_image, (CAR_WIDTH, CAR_HEIGHT))
+    car_image = pygame.transform.rotate(car_image, 270)  # Initial 90-degree rotation
+    
+    # Replace the car drawing section
+    # Draw car
+    rotated_car = pygame.transform.rotate(car_image, player_car.angle)
     car_rect = rotated_car.get_rect(center=player_car.position)
     screen.blit(rotated_car, car_rect)
 
@@ -394,21 +404,23 @@ while running:
     ui_surface = pygame.Surface((ui_box_width, ui_box_height), pygame.SRCALPHA)
     ui_surface.fill(UI_BG)
     pygame.draw.rect(ui_surface, UI_BORDER, (0, 0, ui_box_width, ui_box_height), 2)
-
+    # Render LAP text with medium weight
     lap_text = title_font.render(f"{lap_count}/{max_laps}", True, ACCENT_COLOR)
-    label_lap = data_font.render("LAP", True, TEXT_COLOR)
+    label_lap = pygame.font.SysFont("Arial", 18, bold=False).render("LAP", True, TEXT_COLOR)
     ui_surface.blit(label_lap, (10, 10))
     ui_surface.blit(lap_text, (10, 35))
 
+    # Render CURRENT text with medium weight
     time_val = time.time() - player_car.current_lap_start
     current_lap_text = data_font.render(f"{time_val:.2f}s", True, WHITE)
-    label_current = data_font.render("CURRENT", True, TEXT_COLOR)
+    label_current = pygame.font.SysFont("Arial", 18, bold=False).render("CURRENT", True, TEXT_COLOR)
     ui_surface.blit(label_current, (10, 75))
     ui_surface.blit(current_lap_text, (10, 95))
 
+    # Render BEST text with medium weight
     best_lap_val = player_car.best_lap if player_car.best_lap != float('inf') else 0
     best_lap_text = data_font.render(f"{best_lap_val:.2f}s", True, GOLD)
-    label_best = data_font.render("BEST", True, TEXT_COLOR)
+    label_best = pygame.font.SysFont("Arial", 18, bold=False).render("BEST", True, TEXT_COLOR)
     ui_surface.blit(label_best, (100, 75))
     ui_surface.blit(best_lap_text, (100, 95))
 
