@@ -102,6 +102,7 @@ class Car:
         self.best_lap = float('inf')
         self.current_lap_start = time.time()
         self.last_lap_time = 0
+        self.id = str(time.time())  # Unique ID for each car
 
 # ----------------------------------------------------------------
 #                   DEFINICIÓN DE PISTA CON OFFSET
@@ -202,13 +203,24 @@ except:
 
 def receive_data(sock):
     global players
+    buffer = ""
     while True:
         try:
-            data = sock.recv(1024)
+            data = sock.recv(4096)
             if not data:
                 break
-            players = json.loads(data.decode())
-        except:
+            
+            buffer += data.decode()
+            try:
+                response = json.loads(buffer)
+                if "players" in response:
+                    players = response["players"]
+                buffer = ""
+            except json.JSONDecodeError:
+                continue
+                
+        except Exception as e:
+            print(f"Connection error: {e}")
             break
 
 threading.Thread(target=receive_data, args=(client_socket,), daemon=True).start()
@@ -395,21 +407,25 @@ while running:
     car_rect = rotated_car.get_rect(center=player_car.position)
     screen.blit(rotated_car, car_rect)
 
-    # Draw other players
+    # Draw other players (in the game loop)
     for player_id, player_data in players.items():
-        if str(player_data) != str(player_car):  # Don't draw ourselves twice
-            other_pos = player_data["position"]
-            other_angle = player_data["angle"]
-            
-            # Draw other player's car
-            other_car = pygame.transform.rotate(car_image, other_angle)
-            other_rect = other_car.get_rect(center=other_pos)
-            screen.blit(other_car, other_rect)
-            
-            # Draw player ID above car
-            player_label = font.render(f"Player {player_id}", True, WHITE)
-            label_rect = player_label.get_rect(center=(other_pos[0], other_pos[1] - 30))
-            screen.blit(player_label, label_rect)
+        if str(player_id) != str(player_car.id):  # Don't draw ourselves
+            try:
+                other_pos = player_data["position"]
+                other_angle = player_data["angle"]
+                
+                # Draw other player's car
+                other_car = pygame.transform.rotate(car_image, other_angle)
+                other_rect = other_car.get_rect(center=other_pos)
+                screen.blit(other_car, other_rect)
+                
+                # Draw player ID and lap info
+                player_info = f"P{player_id} - Lap {player_data.get('lap', 0)}"
+                player_label = font.render(player_info, True, WHITE)
+                label_rect = player_label.get_rect(center=(other_pos[0], other_pos[1] - 30))
+                screen.blit(player_label, label_rect)
+            except (KeyError, TypeError):
+                continue
 
     # 12. UI BOX (más pequeña)
     ui_box_width = 320
@@ -490,7 +506,8 @@ while running:
         "position": player_car.position,
         "angle": player_car.angle,
         "lap": lap_count,
-        "checkpoints": current_checkpoint_index
+        "checkpoints": current_checkpoint_index,
+        "id": player_car.id  # Add this to Car class initialization
     }
     try:
         client_socket.sendall(json.dumps(player_data).encode())
