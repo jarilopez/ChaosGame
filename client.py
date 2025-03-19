@@ -68,11 +68,11 @@ GREEN = (0, 200, 80)
 # ----------------------------------------------------------------
 #                   FÍSICA
 # ----------------------------------------------------------------
-ACCELERATION = 0.09
-TURNING_SPEED = 3.5
+ACCELERATION = 0.1
+TURNING_SPEED = 4.0
 FRICTION = 0.01
-MAX_SPEED = 8.0
-DRIFT_FACTOR = 0.95
+MAX_SPEED = 9.5
+DRIFT_FACTOR = 0.55
 GRASS_SLOWDOWN = 0.4
 
 # ----------------------------------------------------------------
@@ -103,6 +103,7 @@ class Car:
         self.current_lap_start = time.time()
         self.last_lap_time = 0
         self.id = str(time.time())  # Unique ID for each car
+        
 
 # ----------------------------------------------------------------
 #                   DEFINICIÓN DE PISTA CON OFFSET
